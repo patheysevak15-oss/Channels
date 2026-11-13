@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SevakTV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ Welcome / add a source ============ -->
+<section id="gate" class="welcome" hidden>
+  <div class="welcome-card">
+    <div class="brand brand-lg"><span class="brand-dot"></span><span>Sevak<span class="brand-tv">TV</span></span></div>
+    <p class="lede">This SevakTV is protected. Enter the access password to continue.</p>
+    <form id="gate-form" class="form" autocomplete="on">
+      <input type="text" name="username" value="sevaktv" autocomplete="username" hidden>
+      <label class="field"><span>Password</span><input id="gate-pass" type="password" autocomplete="current-password" required></label>
+      <p id="gate-error" class="error" role="alert" hidden></p>
+      <div class="form-actions"><button type="submit" class="btn btn-primary" id="gate-btn">Sign in</button></div>
+    </form>
+  </div>
+</section>
+
+<section id="welcome" class="welcome" hidden>
+  <div class="welcome-card">
+    <div class="brand brand-lg"><span class="brand-dot"></span><span>Sevak<span class="brand-tv">TV</span></span></div>
+    <p class="lede">Watch your IPTV subscription in the browser. Add your provider's login or a playlist link. Nothing is sent anywhere except your provider.</p>
+
+    <div class="seg" role="tablist" aria-label="Login method">
+      <button class="seg-btn is-on" data-method="xtream" role="tab" aria-selected="true" id="m-xtream">Xtream Codes</button>
+      <button class="seg-btn" data-method="stalker" role="tab" aria-selected="false" id="m-stalker">Stalker portal</button>
+      <button class="seg-btn" data-method="m3u" role="tab" aria-selected="false" id="m-m3u">M3U link</button>
+      <button class="seg-btn" data-method="file" role="tab" aria-selected="false" id="m-file">M3U file</button>
+    </div>
+
+    <form id="add-form" class="form" autocomplete="off">
+      <label class="field"><span>Playlist name</span>
+        <input id="f-name" placeholder="My TV" maxlength="40">
+      </label>
+
+      <div data-for="xtream">
+        <label class="field"><span>Server URL</span>
+          <input id="f-server" placeholder="http://provider.example:8080" inputmode="url">
+        </label>
+        <div class="row2">
+          <label class="field"><span>Username</span><input id="f-user" autocapitalize="off"></label>
+          <label class="field"><span>Password</span><input id="f-pass" type="password"></label>
+        </div>
+      </div>
+
+      <div data-for="stalker" hidden>
+        <label class="field"><span>Portal URL</span>
+          <input id="f-portal" placeholder="http://provider.example:8080" inputmode="url" autocapitalize="off">
+        </label>
+        <p class="hint">Type it exactly as your provider gave it, including any port. Addresses with or without <code>/c/</code> both work.</p>
+        <div class="field device-mac">
+          <span>This device’s MAC address</span>
+          <div class="mac-row">
+            <code id="dev-mac" class="mac">—</code>
+            <button type="button" class="btn btn-ghost btn-sm" id="dev-mac-copy">Copy</button>
+          </div>
+          <p class="hint" id="dev-mac-hint">Each device gets its own MAC. Give this one to your provider so they can activate it, then sign in.</p>
+        </div>
+        <details class="more">
+          <summary>More options (only if your provider asks)</summary>
+          <div class="row2">
+            <label class="field"><span>Serial number</span><input id="f-sn" autocapitalize="off"></label>
+            <label class="field"><span>Device ID</span><input id="f-devid" autocapitalize="off"></label>
+          </div>
+        </details>
+      </div>
+
+      <div data-for="m3u" hidden>
+        <label class="field"><span>Playlist URL (.m3u / .m3u8)</span>
+          <input id="f-url" placeholder="https://example.com/playlist.m3u" inputmode="url">
+        </label>
+      </div>
+
+      <div data-for="file" hidden>
+        <label class="field"><span>Playlist file</span>
+          <input id="f-file" type="file" accept=".m3u,.m3u8,audio/x-mpegurl,application/vnd.apple.mpegurl,text/plain">
+        </label>
+        <p class="hint">File playlists are kept in this browser only.</p>
+      </div>
+
+      <p id="add-error" class="error" role="alert" hidden></p>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="add-submit">Add playlist</button>
+        <button type="button" class="btn btn-ghost" id="add-demo">Try free demo channels</button>
+        <button type="button" class="btn btn-ghost" id="add-cancel" hidden>Cancel</button>
+      </div>
+    </form>
+    <p id="proxy-note-welcome" class="hint proxy-note" hidden></p>
+  </div>
+</section>
+
+<!-- ============ Main app ============ -->
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <div class="brand"><span class="brand-dot"></span><span>Sevak<span class="brand-tv">TV</span></span></div>
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab is-on" data-section="live" id="t-live">Live TV</button>
+      <button class="tab" data-section="movies" id="t-movies">Movies</button>
+      <button class="tab" data-section="series" id="t-series">Series</button>
+      <button class="tab" data-section="favorites" id="t-fav">Favorites</button>
+    </nav>
+    <div class="search">
+      <input id="search" type="search" placeholder="Search  ( / )" aria-label="Search">
+    </div>
+    <div class="source-menu">
+      <select id="source-select" aria-label="Playlist"></select>
+      <button class="icon-btn" id="btn-settings" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.3 4.8-1.9-.4a6.7 6.7 0 0 1-.5 1.3l1.1 1.6-1.6 1.6-1.6-1.1c-.4.2-.9.4-1.3.5l-.4 1.9h-2.2l-.4-1.9a6.7 6.7 0 0 1-1.3-.5l-1.6 1.1-1.6-1.6 1.1-1.6c-.2-.4-.4-.9-.5-1.3l-1.9-.4v-2.2l1.9-.4c.1-.5.3-.9.5-1.3L6.6 7.6l1.6-1.6 1.6 1.1c.4-.2.9-.4 1.3-.5l.4-1.9h2.2l.4 1.9c.5.1.9.3 1.3.5l1.6-1.1 1.6 1.6-1.1 1.6c.2.4.4.9.5 1.3l1.9.4v2.2Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="proxy-banner" class="banner" hidden></div>
+
+  <main class="layout" id="layout">
+    <aside class="cats" aria-label="Categories">
+      <select id="cat-select" class="cat-select" aria-label="Category"></select>
+      <ul id="cat-list" class="cat-list"></ul>
+    </aside>
+
+    <section class="browser" aria-label="Channels">
+      <div class="browser-head">
+        <h2 id="browser-title">All channels</h2>
+        <span id="browser-count" class="count"></span>
+        <label class="sort" id="sort-wrap" hidden>
+          <span>Sort</span>
+          <select id="sort-select" aria-label="Sort">
+            <option value="recent">Recently added</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Name A–Z</option>
+            <option value="za">Name Z–A</option>
+            <option value="rating">Highest rated</option>
+          </select>
+        </label>
+      </div>
+      <div id="loading" class="loading" hidden><span class="spinner"></span><span id="loading-text">Loading…</span></div>
+      <div id="empty" class="empty" hidden></div>
+      <ul id="channel-list" class="channel-list"></ul>
+      <div id="continue" class="continue" hidden>
+        <h3>Continue watching</h3>
+        <ul class="continue-row" id="continue-row"></ul>
+      </div>
+      <ul id="poster-grid" class="poster-grid" hidden></ul>
+      <div id="sentinel" class="sentinel"></div>
+    </section>
+
+    <section class="stage" id="stage" aria-label="Player">
+      <div class="player-dock" id="player-dock">
+        <div class="player" id="player">
+          <video id="video" playsinline webkit-playsinline preload="auto"></video>
+          <div class="player-overlay" id="player-overlay">
+            <div class="idle" id="player-idle">
+              <div class="idle-dial" aria-hidden="true"></div>
+              <p>Pick a channel to start watching</p>
+              <p class="hint">↑ ↓ change channel · F fullscreen · M mute</p>
+            </div>
+            <div class="status" id="player-status" hidden></div>
+          </div>
+          <div class="pc is-idle" id="pc">
+            <div class="pc-subs" id="pc-subs" hidden></div>
+            <div class="pc-gesture" id="pc-gesture"></div>
+            <div class="pc-ripple pc-ripple-l" id="rip-l" aria-hidden="true">−10s</div>
+            <div class="pc-ripple pc-ripple-r" id="rip-r" aria-hidden="true">+10s</div>
+            <div class="pc-top"><div class="pc-title"><strong id="pc-title"></strong><span id="pc-sub"></span></div></div>
+            <div class="pc-bottom">
+              <div class="pc-seek" id="pc-seek">
+                <div class="pc-track"><i class="pc-buf" id="pc-buf"></i><i class="pc-played" id="pc-played"></i></div>
+                <input type="range" id="pc-range" min="0" max="1000" step="1" value="0" aria-label="Seek">
+                <span class="pc-tip" id="pc-tip" hidden></span>
+              </div>
+              <div class="pc-row">
+                <button class="pcb" id="pc-play" aria-label="Play or pause"><svg viewBox="0 0 24 24" class="i-play"><path d="M8 5.5v13l11-6.5z"/></svg><svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg></button>
+                <button class="pcb" id="pc-back" aria-label="Back 10 seconds"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/><text x="12" y="16.2" text-anchor="middle" font-size="6.6" font-weight="700" font-family="Inter,system-ui,sans-serif">10</text></svg></button>
+                <button class="pcb" id="pc-fwd" aria-label="Forward 10 seconds"><svg viewBox="0 0 24 24"><path d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/><text x="12" y="16.2" text-anchor="middle" font-size="6.6" font-weight="700" font-family="Inter,system-ui,sans-serif">10</text></svg></button>
+                <button class="pcb pc-wide" id="pc-chup" aria-label="Previous channel"><svg viewBox="0 0 24 24"><path d="M12 7l6 7H6z"/></svg></button>
+                <button class="pcb pc-wide" id="pc-chdown" aria-label="Next channel"><svg viewBox="0 0 24 24"><path d="M12 17l6-7H6z"/></svg></button>
+                <div class="pc-vol"><button class="pcb" id="pc-mute" aria-label="Mute"><svg viewBox="0 0 24 24" class="i-vol"><path d="M4 9.5h4L13 5v14l-5-4.5H4zM16 8.5a5 5 0 0 1 0 7l-1.4-1.4a3 3 0 0 0 0-4.2zM18.4 6a8.5 8.5 0 0 1 0 12L17 16.6a6.5 6.5 0 0 0 0-9.2z"/></svg><svg viewBox="0 0 24 24" class="i-muted"><path d="M4 9.5h4L13 5v14l-5-4.5H4zM16.3 9.3l1.4-1.4 2 2 2-2 1.4 1.4-2 2 2 2-1.4 1.4-2-2-2 2-1.4-1.4 2-2z"/></svg></button><input type="range" id="pc-volume" min="0" max="1" step="0.05" value="1" aria-label="Volume"></div>
+                <span class="pc-time" id="pc-time"></span>
+                <span class="pc-live" id="pc-live">LIVE</span>
+                <button class="pc-golive" id="pc-golive" hidden>Go live</button>
+                <span class="pc-spacer"></span>
+                <button class="pcb" id="pc-next" aria-label="Next episode" hidden><svg viewBox="0 0 24 24"><path d="M5 5.5v13l9-6.5zM16 5h3v14h-3z"/></svg></button>
+                <button class="pcb" id="pc-cc" aria-label="Subtitles"><svg viewBox="0 0 24 24"><path d="M3 5h18v14H3zm2 2v10h14V7zm2.5 3.2c0-.7.6-1.2 1.3-1.2H11v1.4H9v3.2h2V15H8.8c-.7 0-1.3-.5-1.3-1.2zm5.5 0c0-.7.6-1.2 1.3-1.2h2.2v1.4h-2v3.2h2V15h-2.2c-.7 0-1.3-.5-1.3-1.2z"/></svg></button>
+                <button class="pcb" id="pc-gear" aria-label="Player options"><svg viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.3 4.8-1.9-.4a6.7 6.7 0 0 1-.5 1.3l1.1 1.6-1.6 1.6-1.6-1.1c-.4.2-.9.4-1.3.5l-.4 1.9h-2.2l-.4-1.9a6.7 6.7 0 0 1-1.3-.5l-1.6 1.1-1.6-1.6 1.1-1.6c-.2-.4-.4-.9-.5-1.3l-1.9-.4v-2.2l1.9-.4c.1-.5.3-.9.5-1.3L6.6 7.6l1.6-1.6 1.6 1.1c.4-.2.9-.4 1.3-.5l.4-1.9h2.2l.4 1.9c.5.1.9.3 1.3.5l1.6-1.1 1.6 1.6-1.1 1.6c.2.4.4.9.5 1.3l1.9.4v2.2Z"/></svg></button>
+                <button class="pcb pc-wide" id="pc-pip" aria-label="Picture in picture"><svg viewBox="0 0 24 24"><path d="M3 5h18v14H3zm2 2v10h14V7zm6 5h7v4h-7z"/></svg></button>
+                <button class="pcb" id="pc-fs" aria-label="Fullscreen"><svg viewBox="0 0 24 24" class="i-fs"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg><svg viewBox="0 0 24 24" class="i-fsx"><path d="M8 4h2v6H4V8h4zm6 0h2v4h4v2h-6zM4 14h6v6H8v-4H4zm10 0h6v2h-4v4h-2z"/></svg></button>
+              </div>
+            </div>
+            <div class="pc-menu" id="pc-menu" hidden></div>
+            <div class="pc-upnext" id="pc-upnext" hidden>
+              <div class="upnext-label">Next episode in <span id="upnext-count">10</span>s</div>
+              <div class="upnext-title" id="upnext-title"></div>
+              <div class="upnext-actions"><button class="btn btn-primary btn-sm" id="upnext-play">Play now</button><button class="btn btn-ghost btn-sm" id="upnext-cancel">Cancel</button></div>
+            </div>
+            <input type="file" id="pc-subfile" accept=".srt,.vtt,text/vtt,application/x-subrip" hidden>
+          </div>
+        </div>
+      </div>
+      <div class="now" id="now" hidden>
+        <div class="now-head">
+          <img id="now-logo" class="now-logo" alt="">
+          <div class="now-titles">
+            <div class="now-num" id="now-num"></div>
+            <h3 id="now-name"></h3>
+          </div>
+          <button class="fav-btn" id="now-fav" aria-pressed="false" title="Add to favorites">★</button>
+        </div>
+        <ol class="epg" id="epg"></ol>
+        <button class="btn btn-ghost btn-sm guide-btn" id="now-guide" hidden>TV guide</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ Movie / series detail ============ -->
+<div class="sheet-backdrop" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <button class="icon-btn sheet-close" id="sheet-close" aria-label="Close">✕</button>
+    <div class="sheet-player" id="sheet-player-slot"></div>
+    <div class="sheet-body">
+      <img id="sheet-poster" class="sheet-poster" alt="">
+      <div class="sheet-info">
+        <h2 id="sheet-title"></h2>
+        <div class="meta" id="sheet-meta"></div>
+        <p id="sheet-plot" class="plot"></p>
+        <div class="sheet-actions">
+          <button class="btn btn-primary" id="sheet-play">Play</button>
+          <button class="btn btn-ghost" id="sheet-restart" hidden>Play from start</button>
+          <button class="btn btn-ghost" id="sheet-fav" aria-pressed="false">★ Favorite</button>
+        </div>
+        <div id="seasons" class="seasons" hidden>
+          <div class="season-tabs" id="season-tabs"></div>
+          <ol class="episodes" id="episodes"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Settings ============ -->
+<div class="sheet-backdrop" id="settings" hidden>
+  <div class="sheet sheet-narrow" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <button class="icon-btn sheet-close" id="settings-close" aria-label="Close">✕</button>
+    <div class="sheet-pad">
+      <h2 id="settings-title">Settings</h2>
+      <div id="account-info" class="account"></div>
+      <div id="this-device" class="this-device" hidden>
+        <div><span class="label-sm">This device</span><div id="this-device-text"></div></div>
+        <button class="btn btn-ghost" id="s-devices">Manage devices</button>
+      </div>
+
+      <details class="os-box" id="os-box">
+        <summary>Online subtitles (OpenSubtitles) <span class="os-state" id="os-state"></span></summary>
+        <div class="os-body">
+          <p class="hint">Needed to search subtitles from the player. Get a free API key: sign up at opensubtitles.com, then open your profile → <a href="https://www.opensubtitles.com/en/consumers" target="_blank" rel="noopener">API consumers</a> → New consumer. Adding your account below raises the daily download limit.</p>
+          <label class="field"><span>API key</span><input id="os-key" type="password" autocomplete="off" spellcheck="false"></label>
+          <div class="row2">
+            <label class="field"><span>Username (optional)</span><input id="os-user" autocomplete="off" autocapitalize="off"></label>
+            <label class="field"><span>Password (optional)</span><input id="os-pass" type="password" autocomplete="new-password"></label>
+          </div>
+          <label class="field"><span>Subtitle languages</span><input id="os-langs" placeholder="en" autocapitalize="off" spellcheck="false"></label>
+          <p class="hint">Two-letter codes, separated by commas, e.g. <code>en,hi,ar</code>.</p>
+          <div class="settings-actions">
+            <button class="btn btn-primary" id="os-save">Save</button>
+            <button class="btn btn-ghost" id="os-clear" hidden>Remove</button>
+          </div>
+          <p class="dev-msg" id="os-msg" role="status"></p>
+        </div>
+      </details>
+
+      <label class="toggle"><input type="checkbox" id="s-proxy"><span>Send requests through the helper server</span></label>
+      <p class="hint" id="s-proxy-hint"></p>
+
+      <label class="field"><span>Live stream format (Xtream)</span>
+        <select id="s-format">
+          <option value="m3u8">HLS (.m3u8), works in most browsers</option>
+          <option value="ts">MPEG-TS (.ts)</option>
+        </select>
+      </label>
+      <label class="field"><span>User-Agent override (optional)</span>
+        <input id="s-ua" placeholder="e.g. VLC/3.0.20 LibVLC/3.0.20">
+      </label>
+
+      <div class="settings-actions">
+        <button class="btn btn-ghost" id="s-reload">Refresh playlist</button>
+        <button class="btn btn-ghost" id="s-add">Add another playlist</button>
+        <button class="btn btn-danger" id="s-remove">Remove this playlist</button>
+        <button class="btn btn-ghost" id="s-logout" hidden>Sign out</button>
+      </div>
+      <div id="confirm-remove" class="confirm" hidden>
+        <p>Remove “<span id="confirm-name"></span>” and its favorites from this browser?</p>
+        <button class="btn btn-danger" id="confirm-yes">Remove</button>
+        <button class="btn btn-ghost" id="confirm-no">Keep</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TV guide / catch-up ============ -->
+<div class="sheet-backdrop" id="guide" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <button class="icon-btn sheet-close" id="guide-close" aria-label="Close">✕</button>
+    <div class="sheet-player" id="guide-player-slot" hidden></div>
+    <div class="sheet-pad">
+      <div>
+        <h2 id="guide-title"></h2>
+        <p class="hint" id="guide-sub"></p>
+      </div>
+      <div class="season-tabs" id="guide-days"></div>
+      <ol class="guide-list" id="guide-list"></ol>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Devices ============ -->
+<div class="sheet-backdrop" id="devices" hidden>
+  <div class="sheet sheet-narrow sheet-wide" role="dialog" aria-modal="true" aria-labelledby="devices-title">
+    <button class="icon-btn sheet-close" id="devices-close" aria-label="Close">✕</button>
+    <div class="sheet-pad">
+      <h2 id="devices-title">Devices</h2>
+      <p class="hint">Each device has its own MAC address for Stalker portals. Your provider must activate a MAC before that device can sign in. Changes here apply to the device the next time it opens SevakTV.</p>
+      <ul class="dev-list" id="dev-list"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="vendor/hls.min.js"></script>
+<script src="vendor/mpegts.js"></script>
+<script src="app.js"></script>
+<script src="player-ui.js"></script>
+</body>
+</html>

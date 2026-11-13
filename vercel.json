@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/proxy",
+      "destination": "/api/sevak?__route=/proxy"
+    },
+    {
+      "source": "/api/:path((?!sevak$).*)",
+      "destination": "/api/sevak?__route=/api/:path"
+    }
+  ],
+  "functions": {
+    "api/sevak.js": {
+      "maxDuration": 60
+    }
+  }
+}
