@@ -4,7 +4,8 @@ Watch an IPTV subscription in the browser. It supports **Xtream Codes** logins, 
 
 ## Two ways to run it
 
-- **On Vercel:** a public web address that works from anywhere. See [Deploy on Vercel](#deploy-on-vercel).
+- **On Cloudflare Workers** (recommended for hosting): a public address that works from anywhere, with no time limit on streams. See [Deploy on Cloudflare](#deploy-on-cloudflare).
+- **On Vercel:** also possible, with more limits. See [Deploy on Vercel](#deploy-on-vercel).
 - **At home:** on your own computer, below.
 
 ## Run it at home
@@ -59,6 +60,22 @@ Then open `http://<your-computer-ip>:8080` on the other device.
 
 The key is stored once on the helper server (`data/settings.json`) for all your devices.
 
+## Deploy on Cloudflare
+
+This repository already contains everything Cloudflare needs: `wrangler.jsonc` and `cloudflare/worker.js`.
+
+1. **Connect the repository.** In the Cloudflare dashboard, go to **Workers & Pages → Create → Import a repository**, pick this repository, and deploy. The Worker must be named **channels**; that's the name in `wrangler.jsonc`. Each push to `main` then deploys by itself.
+2. **Storage.** Device MACs and the subtitle key are kept in the Workers KV namespace **sevaktv-data**, already linked in `wrangler.jsonc` as `SEVAK_KV`. To use a different Cloudflare account, create a KV namespace there and put its id in `wrangler.jsonc`.
+3. **Set an access password** (strongly recommended; the address is public). Open the Worker → **Settings → Variables and Secrets → Add**, type **Secret**, name `SEVAK_PASSWORD`, then enter your password and save. Secrets stay in place across deploys.
+4. Open `https://channels.<your-subdomain>.workers.dev`.
+
+**Good to know on Cloudflare:**
+
+- **No time limit on streams.** Live MPEG-TS and long movies stream continuously.
+- **Free plan.** It includes 100,000 requests a day. A live HLS channel makes a request every few seconds, so heavy daily viewing can reach that.
+- **Data-center addresses.** Your provider sees Cloudflare's addresses, not your home connection. Some providers block those; if a provider refuses streams here but works at home, use the home version. Providers that are themselves behind Cloudflare only work on standard ports.
+- **Cloudflare's terms.** They restrict relaying large amounts of video through the free network, so heavy use can be limited.
+
 ## Deploy on Vercel
 
 1. **Import the project.** In [vercel.com](https://vercel.com), choose **Add New → Project**, pick this GitHub repository and click **Deploy**. You don't need to change any settings; `vercel.json` sets everything up.
@@ -81,6 +98,9 @@ server.js          home server (serves the app + uses lib/)
 lib/core.js        relay, stream check, devices, subtitles, access password
 lib/storage.js     data/ files at home, Upstash Redis on Vercel
 api/sevak.js       Vercel function (uses lib/)
+cloudflare/worker.js  Cloudflare Worker (uses lib/stream-tools.js)
+lib/stream-tools.js   stream helpers shared with the Worker
+wrangler.jsonc     Cloudflare settings
 vercel.json        Vercel settings
 public/index.html  app markup
 public/style.css   styles

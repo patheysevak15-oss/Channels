@@ -1,0 +1,16 @@
+// Cloudflare Workers settings for SevakTV (used by Cloudflare's GitHub builds).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "channels",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/proxy", "/api/*"]
+  },
+  "kv_namespaces": [
+    { "binding": "SEVAK_KV", "id": "5555967932ad4b798eefcc31c93b8f31" }
+  ],
+  "observability": { "enabled": true }
+}
